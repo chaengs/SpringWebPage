@@ -63,8 +63,7 @@ public class UsersController {
 	
 	//비밀번호 수정 요청 처리
 	@RequestMapping("/users/private/pwd_update")
-	public ModelAndView pwd_update(ModelAndView mView, UsersDto dto,
-			HttpSession session) {
+	public ModelAndView pwd_update(ModelAndView mView, UsersDto dto, HttpSession session) {
 		//UsersDto 에는 폼전송된 구비밀번호, 새비밀번호가 담겨 있다.
 		service.updateUserPwd(mView, dto, session);
 		mView.setViewName("users/private/pwd_update");

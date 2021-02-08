@@ -79,25 +79,25 @@ public class UsersServiceImpl implements UsersService{
 		String url=request.getParameter("url");
 		//로그인 실패를 대비해서 목적지 정보를 인코딩한 결과도 준비 한다.
 		String encodedUrl=URLEncoder.encode(url);
-		//1. 폼전송되는 아이디와 비밀번호를 읽어온다.
+		//1.폼전송되는 아이디와 비밀번호를 읽어온다.
 		String id=request.getParameter("id");
 		String pwd=request.getParameter("pwd");
 		//유효한 정보인지 여부를 담을 지역 변수를 만들고 초기값 false 지정 
 		boolean isValid=false;
-		//2. 아이디를 이용해서 암호화된 비밀번호를 select
-		String savedPwd=dao.getPwd(id);
-		//3. 비밀번호가 만일 null 이 아니면 (존재하는 아이디)
-		if(savedPwd != null) {
-			//4. 폼전송되는 비밀번호와 일치하는지 확인한다.
-			isValid=BCrypt.checkpw(pwd, savedPwd);
+		//2.아이디를 이용해서 암호화된 비밀번호를 select
+		String secretPwd=dao.getPwd(id);
+		//3.비밀번호가 만일 null이 아니면 존재하는 아이디
+		if(secretPwd != null) {
+			//4.폼전송되는 비밀번호와 일치하는지 확인한다.
+			isValid=BCrypt.checkpw(pwd, secretPwd);
 		}
-		//3. 유효한 정보이면 로그인 처리를 하고 응답 그렇지 않으면 아이디혹은 비밀번호가 틀렸다고 응답
+		//유효한 정보이면 로그인 처리를 하고 응답 그렇지 않으면 아이디혹은 비밀번호가 틀렸다고 응답
 		if(isValid) {
 			//HttpSession 객체를 이용해서 로그인 처리를 한다. 
 			request.getSession().setAttribute("id", id);
 		}
-		//체크박스를 체크 하지 않았으면 null 이다. 
-		String isSave=request.getParameter("isSave");
+		//체크박스를 체크 하지 않았으면 null
+		String isSave = request.getParameter("isSave");
 		
 		if(isSave == null){//체크 박스를 체크 안했다면
 			//저장된 쿠키 삭제 
@@ -174,17 +174,21 @@ public class UsersServiceImpl implements UsersService{
 	public void updateUserPwd(ModelAndView mView, UsersDto dto, HttpSession session) {
 		//로그인 된 아이디를 읽어와서 
 		String id=(String)session.getAttribute("id");
-		//UsersDto 에 담고
-		dto.setId(id);
-		//비밀번호를 수정하고 성공 여부를 리턴 받는다.
-		boolean isSuccess=dao.updatePwd(dto);
-		//만일 성공이면 
-		if(isSuccess) {
-			//비밀번호가 수정되었으므로 다시 로그인 하도록 로그인 아웃 처리를 한다.
+		//아이디로 암호화된 비밀번호 찾기
+		String secretPwd = dao.getPwd(id);
+		//기존 비밀번호와 일치하는지 확인
+		boolean isValid = BCrypt.checkpw(dto.getPwd(), secretPwd);
+		
+		if(isValid) {
+			String newPwd = new BCryptPasswordEncoder().encode(dto.getNewPwd());
+			dto.setId(id);
+			dto.setNewPwd(newPwd);
+			dao.updatePwd(dto);
+			//로그아웃 처리
 			session.removeAttribute("id");
 		}
 		//성공 여부를 ModelAndView 객체에 담는다.
-		mView.addObject("isSuccess", isSuccess);
+		mView.addObject("isSuccess", isValid);
 	}
 	
 	@Override
